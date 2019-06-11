@@ -15,19 +15,22 @@ for note in clean_notes:
         notes.append(word_tokenize(note))
 
 # build the model - look into parameters
-model = gensim.models.Word2Vec(notes, size=300, window=10, min_count=2, workers=10)
+try:
+        model = Word2Vec.load("w2v.model")
+except:
+        model = gensim.models.Word2Vec(notes, size=300, window=10, min_count=2, workers=10)
 
-print('Start training process...') 
-model.train(notes,total_examples=len(notes),epochs=10)
+        print('Start training process...') 
+        model.train(notes,total_examples=len(notes),epochs=10)
 
-embedding_matrix = np.zeros((len(model.wv.vocab), 300))
-for i in range(len(model.wv.vocab)):
-    embedding_vector = model.wv[model.wv.index2word[i]]
-    if embedding_vector is not None:
-        embedding_matrix[i] = embedding_vector
+        embedding_matrix = np.zeros((len(model.wv.vocab), 300))
+        for i in range(len(model.wv.vocab)):
+                embedding_vector = model.wv[model.wv.index2word[i]]
+                if embedding_vector is not None:
+                        embedding_matrix[i] = embedding_vector
 
-model.save("w2v.model")
-print("Model Saved")
+        model.save("w2v.model")
+        print("Model Saved")
 
 
 # function to get the vector for each document from the words themselves; averaging all the vectors in the document
