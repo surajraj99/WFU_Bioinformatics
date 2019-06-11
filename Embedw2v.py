@@ -28,5 +28,28 @@ for i in range(len(model.wv.vocab)):
 
 model.save("w2v.model")
 print("Model Saved")
+
+
+# function to get the vector for each document from the words themselves; averaging all the vectors in the document
+def document_vector(word2vec_model, doc): # remove out-of-vocabulary words
+    t = []
+    for word in doc:
+        if word in word2vec_model.vocab:
+            t.append(word)
+    if len(t) > 0:
+        return np.mean(word2vec_model[t], axis=0)
+    else:
+        return []
+
+
+doc_vecs = []
+for doc in notes: #look up each doc in model
+	a = document_vector(model, doc)
+	if (len(a) > 0):
+		doc_vecs.append(a)
+
+print("Total number of documents: " + str(len(doc_vecs)))
+
+
 end = timer() # around 2-4 minutes to run the whole thing
 print("Done within " + str(end-start) + " seconds")
