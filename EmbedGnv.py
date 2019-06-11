@@ -18,7 +18,11 @@ tokenizer.fit_on_texts(notes)
 sequences = tokenizer.texts_to_sequences(notes) # a bunch of numbers in a list, persumably the index of each word according to something
 word_index = tokenizer.word_index # a bunch of numbers and the word associated with each number in a dictionary?
 
-model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
+try:
+	model = Word2Vec.load("GoogleVectors.model")
+except:
+	model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
+	model.save("GoogleVectors.model")
 
 embedding_matrix = np.zeros((len(model.vocab), 300))
 for i in range(len(model.vocab)):
@@ -27,7 +31,6 @@ for i in range(len(model.vocab)):
         embedding_matrix[i] = embedding_vector
 
 # may potentially need to turn x train and x test data into these vectors based on word vectors
-
 # function to get each word in each do transformed into a 300 dimensional vector; could compress this with average function later to make it faster
 def get_word_vecs(documents):
 	notes_vec = []
