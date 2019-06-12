@@ -90,7 +90,7 @@ def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctu
                 text = " ".join(new_words)
 
         # optional: removes the rarest words in each text --> right now it's 10
-        if remove_rare(text):
+        if remove_rare:
                 tokens = word_tokenize(text)
                 freq_dist = nltk.FreqDist(tokens)
                 rarewords = list(freq_dist.keys())[-10:]
