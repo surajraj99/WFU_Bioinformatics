@@ -12,6 +12,13 @@ from timeit import default_timer as timer
 import inflect
 from autocorrect import spell
 from collections import OrderedDict
+import progressbar as pb
+
+#initialize widgets for progress bar
+widgets = ['CLEANING NOTES: ', pb.Percentage(), ' ', 
+            pb.Bar(marker=pb.RotatingMarker()), ' ', pb.ETA()]
+#initialize timer for progress bar
+t = pb.ProgressBar(widgets=widgets, maxval=1000000).start()
 
 # function that cleans text
 # still need to account for contractions, abbreviations, and numbers/fractions
@@ -122,19 +129,20 @@ f = open('original_notes.pckl', 'rb')
 old_notes = pickle.load(f)
 f.close()
 
-print("Started cleaning process")
 start = timer()
 notes = []
-for note in old_notes: # takes 100 - 300 seconds to go through the cleaning for-loop for all notes
+for i, note in enumerate(old_notes): # takes 100 - 300 seconds to go through the cleaning for-loop for all notes
+        t.update(i)
         notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, spell_check = True, remove_repeat = True))
 end = timer()
 print(end - start)
 print("Ended cleaning progress")
 
-# save cleaned notes into a picle file
+# save cleaned notes into a pickle file
 f = open('cleaned_notes.pckl', 'wb')
 pickle.dump(notes, f)
 f.close()
 print("Saved cleansed notes")
 
 print("Done cleaning and saving within " + str(end-start) + " seconds")
+t.finish()
