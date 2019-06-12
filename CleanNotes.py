@@ -28,6 +28,7 @@ def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctu
         def misc_cleaning(text):
                 text = re.sub("-([a-zA-Z]+)", r"\1", text) # replaces hyphen with spaces in case of strings
                 text = re.sub(' y ', '', text) # gets rid of random y accent stuff scattered through the text
+                text = re.sub('yyy', 'y', text) # gets rid of random y accent stuff scattered through the text
                 text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
                 text = re.sub(r"what's", "what is ", text)
                 text = re.sub(r"\'s", " ", text)
