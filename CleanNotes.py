@@ -28,7 +28,7 @@ def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctu
         def misc_cleaning(text):
                 text = re.sub("-([a-zA-Z]+)", r"\1", text) # replaces hyphen with spaces in case of strings
                 text = re.sub(' y ', '', text) # gets rid of random y accent stuff scattered through the text
-                text = re.sub('yyy', 'y', text) # gets rid of random y accent stuff scattered through the text
+                text = re.sub('yyy', 'y', text)
                 text = re.sub(r"[^A-Za-z0-9^,!.\/'+-=]", " ", text)
                 text = re.sub(r"what's", "what is ", text)
                 text = re.sub(r"\'s", " ", text)
@@ -77,11 +77,18 @@ def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctu
         if remove_punctuation:
                 text = text.translate(str.maketrans('', '', string.punctuation))
 
-        # does a spellcheck of the text and corrects words that are misspelled
+        # does a spellcheck of the text and corrects words that are misspelled if they're least frequent
         if spell_check:
-                tokens = []
-                for word in tokenize_text(text):
-                        tokens.append(spell(word))
+                tokens = word_tokenize(text)
+                freq_dist = nltk.FreqDist(tokens)
+                rarewords = list(freq_dist.keys())[-10:]
+                correctwords = []
+                for word in rarewords:
+                        correctwords.append(spell(word))
+                for i in range(len(tokens)):
+                        for a in range(len(rarewords)):
+                                if tokens[i] == rarewords[a]:
+                                        tokens[i] = correctwords[a]
                 text = " ".join(tokens)
 
         # optional: replaces numbers ("3") with their word counterparts ("three")
@@ -134,7 +141,8 @@ start = timer()
 notes = []
 for i, note in enumerate(old_notes): # takes 100 - 300 seconds to go through the cleaning for-loop for all notes
         t.update(i)
-        notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, spell_check = True, remove_repeat = True))
+        notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, remove_repeat = True, spell_check=True))
+        # notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, spell_check = True, remove_repeat = True))
 end = timer()
 print(end - start)
 print("Ended cleaning progress")
