@@ -5,12 +5,17 @@ import numpy as np
 import pickle
 from timeit import default_timer as timer
 from nltk import word_tokenize
-from gensim.models import Word2Vec
 
 f = open('cleaned_notes.pckl', 'rb')
 notes = pickle.load(f)
 f.close()
 start = timer()
+
+def lengths(x):
+    length=[]
+    for i,t in enumerate(x):
+        length.append(len(t))
+    return length
 
 # another parameter was data --> avoiding that for now
 def textTokenize(text):    
@@ -20,7 +25,7 @@ def textTokenize(text):
     t.fit_on_texts(text) #training phase
     word_index = t.word_index #get a map of word index
     sequences = t.texts_to_sequences(text)
-    max_len=max(len(sequences))
+    max_len=max(lenghts(sequences))
     print('Found %s unique tokens' % len(word_index))
     text_tok=pad_sequences(sequences, maxlen=max_len)
     return text_tok, word_index, max_len #also return label but avoiding for now
@@ -52,7 +57,7 @@ def make_w2v_model(notes, window, workers, epochs):
 
 
 def word_Embed_w2v(word_index, model):   
-    pretrain = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
+    pretrain = model
     #convert pretrained word embedding to a dictionary
     embedding_index=dict()
     for i in range(len(pretrain.wv.vocab)):
@@ -82,7 +87,7 @@ print("Saved Google Vector Word Embedding Matrix")
 f = open('embedding_matrix_w2v.pckl', 'wb')
 pickle.dump(embedding_matrix_GNV, f)
 f.close()
-print("Saved Google Vectoe Word Embedding Matrix")
+print("Saved Word 2 Vector Embedding Matrix")
 
 end = timer() # around 13 minutes to run the whole thing
 print("Done within " + str(end-start) + " seconds")
