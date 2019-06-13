@@ -5,6 +5,7 @@ import numpy as np
 import pickle
 from timeit import default_timer as timer
 from nltk import word_tokenize
+from gensim.models import Word2Vec
 
 f = open('cleaned_notes.pckl', 'rb')
 notes = pickle.load(f)
@@ -66,6 +67,22 @@ def word_Embed_w2v(word_index, model):
     	if embedding_vector is not None:
     		embedding_matrix[i] = embedding_vector
     return embedding_matrix
+
+notes_tok, word_index, max_len = textTokenize(notes)
+embedding_matrix_GNV = word_Embed_GNV(word_index)
+make_w2v_model(notes, 5, 10, 20)
+w2v_model = Word2Vec.load("w2v.model")
+embedding_matrix_w2v = word_Embed_w2v(word_index, w2v_model)
+
+f = open('embedding_matrix_GNV.pckl', 'wb')
+pickle.dump(embedding_matrix_GNV, f)
+f.close()
+print("Saved Google Vector Word Embedding Matrix")
+
+f = open('embedding_matrix_w2v.pckl', 'wb')
+pickle.dump(embedding_matrix_GNV, f)
+f.close()
+print("Saved Google Vectoe Word Embedding Matrix")
 
 end = timer() # around 13 minutes to run the whole thing
 print("Done within " + str(end-start) + " seconds")
