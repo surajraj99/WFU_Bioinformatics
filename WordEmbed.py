@@ -1,6 +1,7 @@
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import gensim
+from gensim.models import Word2Vec
 import numpy as np
 import pickle
 from timeit import default_timer as timer
@@ -25,7 +26,7 @@ def textTokenize(text):
     t.fit_on_texts(text) #training phase
     word_index = t.word_index #get a map of word index
     sequences = t.texts_to_sequences(text)
-    max_len=max(lenghts(sequences))
+    max_len=max(lengths(sequences))
     print('Found %s unique tokens' % len(word_index))
     text_tok=pad_sequences(sequences, maxlen=max_len)
     return text_tok, word_index, max_len #also return label but avoiding for now
@@ -78,6 +79,11 @@ embedding_matrix_GNV = word_Embed_GNV(word_index)
 make_w2v_model(notes, 5, 10, 20)
 w2v_model = Word2Vec.load("w2v.model")
 embedding_matrix_w2v = word_Embed_w2v(word_index, w2v_model)
+
+f = open('tokenized_notes.pckl', 'wb')
+pickle.dump(notes_tok, f)
+f.close()
+print("Saved Tokenized Notes")
 
 f = open('embedding_matrix_GNV.pckl', 'wb')
 pickle.dump(embedding_matrix_GNV, f)
