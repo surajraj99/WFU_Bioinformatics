@@ -14,7 +14,7 @@ start = timer()
 
 def lengths(x):
     length=[]
-    for i,t in enumerate(x):
+    for t in x:
         length.append(len(t))
     return length
 
