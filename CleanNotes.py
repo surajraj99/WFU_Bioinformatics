@@ -24,7 +24,7 @@ t = pb.ProgressBar(widgets=widgets, maxval=1000000).start()
 # still need to account for contractions, abbreviations, and numbers/fractions
 default_stemmer = PorterStemmer()
 default_stopwords = stopwords.words('english') # or any other list of your choice
-def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctuation = False, stem_text = False, remove_stopwords = False, remove_num = False , spell_check = False, remove_repeat = False):
+def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = False, remove_punctuation = False, stem_text = False, remove_stopwords = False, remove_num = False , spell_check = False, remove_repeat = False):
         def misc_cleaning(text):
                 text = re.sub("-([a-zA-Z]+)", r"\1", text) # replaces hyphen with spaces in case of strings
                 text = re.sub(' y ', '', text) # gets rid of random y accent stuff scattered through the text
@@ -79,9 +79,11 @@ def clean_text(text, replace_numbers = False, remove_rare = False, remove_punctu
 
         # does a spellcheck of the text and corrects words that are misspelled if they're least frequent
         if spell_check:
+                concepts = notes_concepts[i]
                 tokens = word_tokenize(text)
                 freq_dist = nltk.FreqDist(tokens)
                 rarewords = list(freq_dist.keys())[-10:]
+                rarewords[:] = [word for word in rarewords if word not in concepts]
                 correctwords = []
                 for word in rarewords:
                         correctwords.append(spell(word))
@@ -137,11 +139,16 @@ f = open('original_notes.pckl', 'rb')
 old_notes = pickle.load(f)
 f.close()
 
+# load all the concepts
+f = open('notes_concepts.pckl', 'rb')
+notes_concepts = pickle.load(f)
+f.close()
+
 start = timer()
 notes = []
 for i, note in enumerate(old_notes): # takes 100 - 300 seconds to go through the cleaning for-loop for all notes
         t.update(i)
-        notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, remove_repeat = True, spell_check=True))
+        notes.append(clean_text(i, note, notes_concepts, remove_punctuation = True, remove_stopwords = True, remove_repeat = True, spell_check=True))
         # notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, spell_check = True, remove_repeat = True))
 end = timer()
 print(end - start)
