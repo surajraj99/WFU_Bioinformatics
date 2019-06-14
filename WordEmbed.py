@@ -7,7 +7,7 @@ import pickle
 from timeit import default_timer as timer
 from nltk import word_tokenize
 
-f = open('cleaned_notes.pckl', 'rb')
+f = open('Pickle Files\\cleaned_notes.pckl', 'rb')
 notes = pickle.load(f)
 f.close()
 start = timer()
@@ -80,20 +80,20 @@ make_w2v_model(notes, 5, 10, 20)
 w2v_model = Word2Vec.load("w2v.model")
 embedding_matrix_w2v = word_Embed_w2v(word_index, w2v_model)
 
-f = open('tokenized_notes.pckl', 'wb')
+f = open('Pickle Files\\tokenized_notes.pckl', 'wb')
 pickle.dump(notes_tok, f)
 f.close()
 print("Saved Tokenized Notes")
 
-f = open('embedding_matrix_GNV.pckl', 'wb')
+f = open('Pickle Files\\embedding_matrix_GNV.pckl', 'wb')
 pickle.dump(embedding_matrix_GNV, f)
 f.close()
 print("Saved Google Vector Word Embedding Matrix")
 
-f = open('embedding_matrix_w2v.pckl', 'wb')
+f = open('Pickle Files\\embedding_matrix_w2v.pckl', 'wb')
 pickle.dump(embedding_matrix_GNV, f)
 f.close()
 print("Saved Word 2 Vector Embedding Matrix")
 
-end = timer() # around 13 minutes to run the whole thing
+end = timer() # around 5 - 8 minutes to run the whole thing
 print("Done within " + str(end-start) + " seconds")
