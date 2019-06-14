@@ -14,7 +14,7 @@ start = timer()
 
 def lengths(x):
     length=[]
-    for t in x:
+    for i,t in enumerate(x):
         length.append(len(t))
     return length
 
@@ -94,6 +94,16 @@ f = open('Pickle Files\\embedding_matrix_w2v.pckl', 'wb')
 pickle.dump(embedding_matrix_GNV, f)
 f.close()
 print("Saved Word 2 Vector Embedding Matrix")
+
+f = open('Pickle Files\\word_index.pckl', 'wb')
+pickle.dump(word_index, f)
+f.close()
+print("Saved Word Indices")
+
+f = open('Pickle Files\\max_len.pckl', 'wb')
+pickle.dump(max_len, f)
+f.close()
+print("Saved Maximum Length of One Patient's Notes")
 
 end = timer() # around 5 - 8 minutes to run the whole thing
 print("Done within " + str(end-start) + " seconds")
