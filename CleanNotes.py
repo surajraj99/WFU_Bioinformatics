@@ -82,7 +82,12 @@ def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = F
                 concepts = notes_concepts[i]
                 tokens = word_tokenize(text)
                 freq_dist = nltk.FreqDist(tokens)
-                rarewords = list(freq_dist.keys())[-10:]
+                testword = (list(freq_dist.keys())[-1:])[0]
+                lowest_frequency = freq_dist.freq(testword)
+                rarewords = []
+                for word in tokens:
+                        if freq_dist.freq(word) == lowest_frequency:
+                                rarewords.append(word)
                 rarewords[:] = [word for word in rarewords if word not in concepts]
                 correctwords = []
                 for word in rarewords:
@@ -146,7 +151,7 @@ f.close()
 
 start = timer()
 notes = []
-for i, note in enumerate(old_notes): # takes 100 - 300 seconds to go through the cleaning for-loop for all notes
+for i, note in enumerate(old_notes): # takes --- seconds to go through the cleaning for-loop for all notes
         t.update(i)
         notes.append(clean_text(i, note, notes_concepts, remove_punctuation = True, remove_stopwords = True, remove_repeat = True, spell_check=True))
         # notes.append(clean_text(note, remove_punctuation = True, remove_stopwords = True, spell_check = True, remove_repeat = True))
