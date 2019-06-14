@@ -135,12 +135,12 @@ def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = F
         return text
 
 # load all the original unclean notes
-f = open('original_notes.pckl', 'rb')
+f = open('Pickle Files\\original_notes.pckl', 'rb')
 old_notes = pickle.load(f)
 f.close()
 
 # load all the concepts
-f = open('notes_concepts.pckl', 'rb')
+f = open('Pickle Files\\notes_concepts.pckl', 'rb')
 notes_concepts = pickle.load(f)
 f.close()
 
@@ -155,7 +155,7 @@ print(end - start)
 print("Ended cleaning progress")
 
 # save cleaned notes into a pickle file
-f = open('cleaned_notes.pckl', 'wb')
+f = open('Pickle Files\\cleaned_notes.pckl', 'wb')
 pickle.dump(notes, f)
 f.close()
 print("Saved cleansed notes")
