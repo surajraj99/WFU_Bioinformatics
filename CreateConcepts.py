@@ -25,7 +25,7 @@ for i, html in enumerate(files):
 
 print(len(notes_concepts))
 
-f = open('Pickle Files\\notes_concepts.pckl', 'wb')
+f = open('PickleFiles/notes_concepts.pckl', 'wb')
 pickle.dump(notes_concepts, f)
 f.close()
 print("Saved concepts of notes")
