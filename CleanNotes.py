@@ -13,6 +13,7 @@ import inflect
 from autocorrect import spell
 from collections import OrderedDict
 import progressbar as pb
+from pyjarowinkler import distance
 
 #initialize widgets for progress bar
 widgets = ['CLEANING NOTES: ', pb.Percentage(), ' ', 
@@ -70,8 +71,14 @@ def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = F
 
         if remove_repeat:
                 sentences = sent_tokenize(text)
-                new_sent = list(OrderedDict.fromkeys(sentences))
-                text = " ".join(new_sent)
+                for i in range(len(sentences)-1):
+                        for j in range(i+1, len(sentences)):
+                                if (j < len(sentences)):
+                                        if (distance.get_jaro_distance(sentences[i], sentences[j], winkler=True, scaling=0.1) > 0.95):
+                                                del sentences[j]
+                                else:
+                                        break
+                text = " ".join(sentences)
         
         # removes punctuation
         if remove_punctuation:
@@ -140,12 +147,12 @@ def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = F
         return text
 
 # load all the original unclean notes
-f = open('Pickle Files\\original_notes.pckl', 'rb')
+f = open('PickleFiles/original_notes.pckl', 'rb')
 old_notes = pickle.load(f)
 f.close()
 
 # load all the concepts
-f = open('Pickle Files\\notes_concepts.pckl', 'rb')
+f = open('PickleFiles/notes_concepts.pckl', 'rb')
 notes_concepts = pickle.load(f)
 f.close()
 
@@ -160,10 +167,11 @@ print(end - start)
 print("Ended cleaning progress")
 
 # save cleaned notes into a pickle file
-f = open('Pickle Files\\cleaned_notes.pckl', 'wb')
+f = open('PickleFiles/cleaned_notes.pckl', 'wb')
 pickle.dump(notes, f)
 f.close()
 print("Saved cleansed notes")
 
+# take around 1 - 1.5 hours to complete for 782 files
 print("Done cleaning and saving within " + str(end-start) + " seconds")
 t.finish()
