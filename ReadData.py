@@ -38,6 +38,6 @@ for document in files:
             notes.append(readcsv(document, root))
 
 # saving data via pickle
-f = open('original_notes.pckl', 'wb')
+f = open('PickleFiles/original_notes.pckl', 'wb')
 pickle.dump(notes, f)
 f.close()
