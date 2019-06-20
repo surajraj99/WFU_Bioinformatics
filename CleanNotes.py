@@ -13,7 +13,6 @@ import inflect
 from autocorrect import spell
 from collections import OrderedDict
 import progressbar as pb
-from pyjarowinkler import distance
 
 #initialize widgets for progress bar
 widgets = ['CLEANING NOTES: ', pb.Percentage(), ' ', 
@@ -71,13 +70,7 @@ def clean_text(i, text, notes_concepts, replace_numbers = False, remove_rare = F
 
         if remove_repeat:
                 sentences = sent_tokenize(text)
-                for i in range(len(sentences)-1):
-                        for j in range(i+1, len(sentences)):
-                                if (j < len(sentences)):
-                                        if (distance.get_jaro_distance(sentences[i], sentences[j], winkler=True, scaling=0.1) > 0.95):
-                                                del sentences[j]
-                                else:
-                                        break
+                sentences = list(dict.fromkeys(sentences))
                 text = " ".join(sentences)
         
         # removes punctuation
