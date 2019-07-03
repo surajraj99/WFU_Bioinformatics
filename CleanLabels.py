@@ -3,6 +3,8 @@ import csv
 import pandas as pd
 import numpy as np
 import pickle
+from keras.utils import np_utils
+
 # load in all the files in each of the folders into two lists --> same order
 progressNoteFiles = os.listdir('PatientData/')
 smokingDataFiles = os.listdir('SmokingData/')
@@ -61,7 +63,8 @@ def make_categorical_labels(word_labels):
                 labels.append(0)
 
     labels = np.array(labels)
-    return labels
+    l = np_utils.to_categorical(labels)
+    return l
 
 word_labels = get_word_labels(smokingDataFiles, "SmokingData/")
 binary_labels = make_binary_labels(word_labels)
@@ -72,7 +75,7 @@ pickle.dump(binary_labels, f)
 f.close()
 
 f = open('PickleFiles/categorical_labels.pckl', 'wb')
-pickle.dump(binary_labels, f)
+pickle.dump(categorical_labels, f)
 f.close()
 
 
