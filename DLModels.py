@@ -1,21 +1,36 @@
+import numpy as np
+import tensorflow as tf
+import random as rn
+
+# np.random.seed(39)
+# rn.seed(12345)
+# session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+#                               inter_op_parallelism_threads=1)
+
+# from keras import backend as K
+# tf.set_random_seed(1234)
+# sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+# K.set_session(sess)
 import os
 import random
 import statistics as st
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 import pickle
-import numpy as np
 import pandas as pd
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Input, LSTM, Embedding, Dropout, GRU, Bidirectional
 from keras.layers import Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D
+from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from keras import metrics
 from keras.callbacks import EarlyStopping
+from keras.optimizers import Adam
 
 from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import brier_score_loss, precision_score, recall_score, f1_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import roc_curve,auc
@@ -23,42 +38,74 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import log_loss
 
 def get_variables_cluster():
-    df = pd.read_hdf('//home//srajendr//WFU//PandaFiles//tokenized_notes.h5')
+    # Reading tokenized notes from panda files
+    df = pd.read_hdf('//home//srajendr//PandaFiles//tokenized_notes.h5')
     notes = df.values.tolist()
 
     # Reading word2vec word embedding matrix from Panda Files and converting to numpy array
-    df = pd.read_hdf('//home//srajendr//WFU//PandaFiles//embedding_matrix_w2v.h5')
-    embedding_matrix = df.to_numpy()
+    df = pd.read_hdf('//home//srajendr//PandaFiles//embedding_matrix_w2v.h5')
+    embedding_matrix_w2v = df.to_numpy()
+
+    # Reading Google word embedding matrix from Panda Files and converting to numpy array
+    df = pd.read_hdf('//home//srajendr//PandaFiles//embedding_matrix_GNV.h5')
+    embedding_matrix_GNV = df.to_numpy()
 
     # Reading word index from Pickle
-    f = open('//home//srajendr//WFU//PickleFiles//word_index.pckl', 'rb')
+    f = open('//home//srajendr//PickleFiles//word_index.pckl', 'rb')
     word_index = pickle.load(f)
     f.close()
 
     # Reading max length from Pickle
-    f = open('//home//srajendr//WFU//PickleFiles//max_len.pckl', 'rb')
+    f = open('//home//srajendr//PickleFiles//max_len.pckl', 'rb')
     max_len = pickle.load(f)
     f.close()
 
+    # Reading tokenized notes eff from panda files
+    df = pd.read_hdf('//home//srajendr//PandaFiles//tokenized_notes_eff.h5')
+    notes_eff = df.values.tolist()
+
+    # Reading word2vec word embedding matrix eff from Panda Files and converting to numpy array
+    df = pd.read_hdf('//home//srajendr//PandaFiles//embedding_matrix_w2v_eff.h5')
+    embedding_matrix_w2v_eff = df.to_numpy()
+
+    # Reading Google word embedding matrix eff from Panda Files and converting to numpy array
+    df = pd.read_hdf('//home//srajendr//PandaFiles//embedding_matrix_GNV_eff.h5')
+    embedding_matrix_GNV_eff = df.to_numpy()
+
+    # Reading word index eff from Pickle
+    f = open('//home//srajendr//PickleFiles//word_index_eff.pckl', 'rb')
+    word_index_eff = pickle.load(f)
+    f.close()
+
+    # Reading max length eff from Pickle
+    f = open('//home//srajendr//PickleFiles//max_len_eff.pckl', 'rb')
+    max_len_eff = pickle.load(f)
+    f.close()
+
     # Reading binary labels
-    f = open('//home//srajendr//WFU//PickleFiles//binary_labels.pckl', 'rb')
+    f = open('//home//srajendr//PickleFiles//binary_labels.pckl', 'rb')
     binary_labels = pickle.load(f)
     f.close()
 
     # Reading categorical labels
-    f = open('//home//srajendr//WFU//PickleFiles//categorical_labels.pckl', 'rb')
+    f = open('//home//srajendr//PickleFiles//categorical_labels.pckl', 'rb')
     categorical_labels = pickle.load(f)
     f.close()
 
-    return notes, embedding_matrix, word_index, max_len, binary_labels, categorical_labels
+    return notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_eff, embedding_matrix_w2v_eff, embedding_matrix_GNV_eff, word_index_eff, max_len_eff, binary_labels, categorical_labels
 
 def get_variables_local():
+    # Reading tokenized notes from panda files
     df = pd.read_hdf('PandaFiles/tokenized_notes.h5')
     notes = df.values.tolist()
 
     # Reading word2vec word embedding matrix from Panda Files and converting to numpy array
     df = pd.read_hdf('PandaFiles/embedding_matrix_w2v.h5')
-    embedding_matrix = df.to_numpy()
+    embedding_matrix_w2v = df.to_numpy()
+
+    # Reading Google word embedding matrix from Panda Files and converting to numpy array
+    df = pd.read_hdf('PandaFiles/embedding_matrix_GNV.h5')
+    embedding_matrix_GNV = df.to_numpy()
 
     # Reading word index from Pickle
     f = open('PickleFiles/word_index.pckl', 'rb')
@@ -68,6 +115,28 @@ def get_variables_local():
     # Reading max length from Pickle
     f = open('PickleFiles/max_len.pckl', 'rb')
     max_len = pickle.load(f)
+    f.close()
+
+    # Reading tokenized notes eff from panda files
+    df = pd.read_hdf('PandaFiles/tokenized_notes_eff.h5')
+    notes_eff = df.values.tolist()
+
+    # Reading word2vec word embedding matrix eff from Panda Files and converting to numpy array
+    df = pd.read_hdf('PandaFiles/embedding_matrix_w2v_eff.h5')
+    embedding_matrix_w2v_eff = df.to_numpy()
+
+    # Reading Google word embedding matrix eff from Panda Files and converting to numpy array
+    df = pd.read_hdf('PandaFiles/embedding_matrix_GNV_eff.h5')
+    embedding_matrix_GNV_eff = df.to_numpy()
+
+    # Reading word index eff from Pickle
+    f = open('PickleFiles/word_index_eff.pckl', 'rb')
+    word_index_eff = pickle.load(f)
+    f.close()
+
+    # Reading max length eff from Pickle
+    f = open('PickleFiles/max_len_eff.pckl', 'rb')
+    max_len_eff = pickle.load(f)
     f.close()
 
     # Reading binary labels
@@ -80,15 +149,54 @@ def get_variables_local():
     categorical_labels = pickle.load(f)
     f.close()
 
-    return notes, embedding_matrix, word_index, max_len, binary_labels, categorical_labels
+    return notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_eff, embedding_matrix_w2v_eff, embedding_matrix_GNV_eff, word_index_eff, max_len_eff, binary_labels, categorical_labels
+
+def make_whole_labels():
+    # Binary Labels
+    X_train_b, X_test_b, y_train_b, y_test_b = train_test_split(notes, binary_labels, test_size=0.33, random_state=39)
+    X_train_b = np.array(X_train_b)
+    X_test_b = np.array(X_test_b)
+
+    # Categorical Labels
+    X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(notes, categorical_labels, test_size=0.33, random_state=39)
+    X_train_c = np.array(X_train_c)
+    X_test_c = np.array(X_test_c)
+
+    return X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c
+
+def make_eff_labels():
+    # Binary Labels
+    X_train_b, X_test_b, y_train_b, y_test_b = train_test_split(notes_eff, binary_labels, test_size=0.33, random_state=39)
+    X_train_b = np.array(X_train_b)
+    X_test_b = np.array(X_test_b)
+
+    # Categorical Labels
+    X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(notes_eff, categorical_labels, test_size=0.33, random_state=39)
+    X_train_c = np.array(X_train_c)
+    X_test_c = np.array(X_test_c)
+
+    return X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c
+
+#sbatch --no-requeue : command to not repeat
 
 # Choose which setting you are running the model in and comment one othe two next lines out
-notes, embedding_matrix, word_index, max_len, binary_labels, categorical_labels = get_variables_cluster()
-#notes, embedding_matrix, word_index, max_len, binary_labels, categorical_labels = get_variables_local()
+notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_eff, embedding_matrix_w2v_eff, embedding_matrix_GNV_eff, word_index_eff, max_len_eff, binary_labels, categorical_labels = get_variables_cluster()
+#notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_eff, embedding_matrix_w2v_eff, embedding_matrix_GNV_eff, word_index_eff, max_len_eff, binary_labels, categorical_labels = get_variables_local()
 
-X_train, X_test, y_train, y_test = train_test_split(notes, binary_labels, test_size=0.33, random_state=39)
-X_train = np.array(X_train)
-X_test = np.array(X_test)
+X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c = make_eff_labels()
+#X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c = make_whole_labels()
+
+# # temporary for local testing:
+# X_train_b = X_train_b[:10]
+# y_train_b = y_train_b[:10]
+# X_test_b = X_test_b[:][:10]
+# y_test_b = y_test_b[:][:10]
+
+# X_train_c = X_train_c[:10]
+# y_train_c = y_train_c[:10]
+# X_test_c = X_test_c[:][:10]
+# y_test_c = y_test_c[:][:10]
+
 
 # create a plot for the model
 def plot_model_history(model_history):
@@ -112,112 +220,210 @@ def plot_model_history(model_history):
     axs[1].legend(['train', 'val'], loc='best')
     plt.show()
 
-#LSTM Unidirectional model 
-def LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed):
-    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
-    callbacks_list = [earlystop]
-    model = Sequential()
-    model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len))
-    model.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
-    model.add(MaxPooling1D(pool_size=2))
-    model.add(LSTM(100))
-    model.add(Dense(1, activation='sigmoid'))
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    print(model.summary())
-    kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
-    model_infos = []
-    for i,(train, test) in enumerate(kfold):
-        print("Fit fold", i+1," ==========================================================================")
-        model_info=model.fit(X_train[train], y_train[train], epochs=2, batch_size=2, validation_data=(X_train[test], y_train[test]),
-                               callbacks=callbacks_list, verbose=1)
-        print("Performance plot of fold {}:".format(i+1))
-        plot_model_history(model_info)
-        model_infos.append(model_info)
-    
-    # Final evaluation of the model
+def evaluate_model(metrics, categorical, model, y_test, X_test):
     y_pred=model.predict(X_test,verbose=1)
-    y_pred_coded=np.where(y_pred>0.5,1,0)
-    y_pred_coded=y_pred_coded.flatten()
+    if (categorical): ##Check this out, weird##
+        y_pred_coded = (y_pred == y_pred.max(axis=1)[:,None]).astype(int)
+        metric=[]
+        metric.append(['f1score',f1_score(y_test,y_pred_coded, average='micro')])
+        metric.append(['precision',precision_score(y_test,y_pred_coded, average='micro')])
+        metric.append(['recall',recall_score(y_test,y_pred_coded, average='micro')])
+        metric.append(['accuracy',accuracy_score(y_test,y_pred_coded)])
+        print(metric)
+        metrics.append(metric)
+    else:
+        y_pred_coded=np.where(y_pred>0.5,1,0)
+        y_pred_coded=y_pred_coded.flatten()
+        metric=[]
+        metric.append(['f1score',f1_score(y_test,y_pred_coded)])
+        metric.append(['precision',precision_score(y_test,y_pred_coded)])
+        metric.append(['recall',recall_score(y_test,y_pred_coded)])
+        metric.append(['accuracy',accuracy_score(y_test,y_pred_coded)])
+        print(metric)
+        metrics.append(metric)
     
-    metric=[]
-    metric.append(['f1score',f1_score(y_test,y_pred_coded)])
-    metric.append(['precision',precision_score(y_test,y_pred_coded)])
-    metric.append(['recall',recall_score(y_test,y_pred_coded)])
-    metric.append(['accuracy',accuracy_score(y_test,y_pred_coded)])
+    return metrics, y_pred
 
-    return y_pred, metric, model_infos
-
-
-# LSTM_Bidirection model
-def LSTM_Bidir(embedding_matrix, word_index, max_len):
-    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
-    callbacks_list = [earlystop]
+#TO DO:
+#Add more LSTM layers
+#Add batch normalization
+# Create LSTM unidirectional model
+def LSTM_Uni_model(word_index, embedding_matrix, max_len, categorical):
+    optm = Adam(lr = 0.001)
     model = Sequential()
     model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
+    #model.add(Dropout(0.2))    #DROPOUT
+    model.add(Conv1D(filters=32, kernel_size=3, padding='same'))
+    #model.add(BatchNormalization())     #BATCH NORMALIZATION   
+    model.add(Activation('relu'))
+    model.add(MaxPooling1D(pool_size=2))
+    model.add(LSTM(100))
+    #model.add(BatchNormalization())     #BATCH NORMALIZATION
+    if (categorical):
+        model.add(Dense(3, activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
+    else:
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer=optm, metrics=['accuracy'])
+    
+    return model
+
+# Create LSTM bidirectional model
+def LSTM_Bidir_model(word_index, embedding_matrix, max_len, categorical):
+    optm = Adam(lr = 0.001)
+    model = Sequential()
+    model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
+    model.add(Dropout(0.2))
     model.add(Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Bidirectional(LSTM(100), merge_mode='concat', weights=None))    
     model.add(Dense(1, activation='sigmoid'))
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    print(model.summary())
-    kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train,y_train))
-    model_infos=[]
-    for i,(train, test) in enumerate(kfold):
-        print("Fit fold", i+1," **************************************************************************")
-        model_info=model.fit(X_train[train], y_train[train], epochs=100, batch_size=64, validation_data=(X_train[test], y_train[test]),
-                               callbacks=callbacks_list, verbose=1)
-        print("Performance plot of fold {}:".format(i+1))
-        plot_model_history(model_info)
-        model_infos.append(model_info)
-    
-    # Final evaluation of the model
-    y_pred=model.predict(X_test,verbose=1)
-    y_pred_coded=np.where(y_pred>0.5,1,0)
-    y_pred_coded=y_pred_coded.flatten()
-    
-    metric=[]
-    metric.append(['f1score',f1_score(y_test,y_pred_coded)])
-    metric.append(['precision',precision_score(y_test,y_pred_coded)])
-    metric.append(['recall',recall_score(y_test,y_pred_coded)])
-    metric.append(['accuracy',accuracy_score(y_test,y_pred_coded)])
+    if (categorical):
+        model.add(Dense(3, activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
+    else:
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer=optm, metrics=['accuracy'])
 
-    return y_pred, metric, model_infos
+    return model
 
-
-# CNN Model
-def CNN_model(embedding_matrix, word_index, max_len):
-    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto')
-    callbacks_list = [earlystop]
+# Create CNN model
+def CNN_model(word_index, embedding_matrix, max_len, categorical):
     model = Sequential()
+    optm = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
     model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
     model.add(Conv1D(128, 5, activation='relu'))
     model.add(GlobalMaxPooling1D())
-    model.add(Dense(10, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    print(model.summary())
-    kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train,y_train))
-    model_infos=[]
+    model.add(Dense(10))
+    #model.add(BatchNormalization())     #BATCH NORMALIZATION   
+    model.add(Activation('relu'))
+    if (categorical):
+        model.add(Dense(3, activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
+    else:
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer=optm, metrics=['accuracy'])
+    
+    return model
+
+#################################################################################################################
+#LSTM Unidirectional model testing
+def LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed, categorical):
+    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto', restore_best_weights=True) # pateince is number of epochs
+    callbacks_list = [earlystop]
+    if (categorical):
+        kfold = list(KFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    else:
+        kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    model_infos = []
+    metrics = []
+    model = None
     for i,(train, test) in enumerate(kfold):
-        print("Fit fold", i+1," **************************************************************************")
-        model_info=model.fit(X_train[train], y_train[train], epochs=100, batch_size=64, validation_data=(X_train[test], y_train[test]),
+        model = None
+        model = LSTM_Uni_model(word_index, embedding_matrix, max_len, categorical)
+        print("Fit fold", i+1," ==========================================================================")
+        model_info=model.fit(X_train[train], y_train[train], epochs=10, batch_size=32, validation_data=(X_train[test], y_train[test]),
                                callbacks=callbacks_list, verbose=1)
         print("Performance plot of fold {}:".format(i+1))
+        # summarize history in plot
         plot_model_history(model_info)
         model_infos.append(model_info)
-    
-    # Final evaluation of the model
-    y_pred=model.predict(X_test,verbose=1)
-    y_pred_coded=np.where(y_pred>0.5,1,0)
-    y_pred_coded=y_pred_coded.flatten()
-    
-    metric=[]
-    metric.append(['f1score',f1_score(y_test,y_pred_coded)])
-    metric.append(['precision',precision_score(y_test,y_pred_coded)])
-    metric.append(['recall',recall_score(y_test,y_pred_coded)])
-    metric.append(['accuracy',accuracy_score(y_test,y_pred_coded)])
 
-    return y_pred, metric, model_infos
+        #Final evaluation of the model
+        metrics, y_pred = evaluate_model(metrics, categorical, model, y_test, X_test)
+    
+    print(model.summary())
+    
+    return y_pred, metrics, model_infos
 
-seed = 39
-y_pred, metric, model_infos = LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed)
+
+# LSTM_Bidirection model
+def LSTM_Bidir(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed, categorical):
+    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto', restore_best_weights=True) # pateince is number of epochs
+    callbacks_list = [earlystop]
+    if (categorical):
+        kfold = list(KFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    else:
+        kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    model_infos = []
+    metrics = []
+    model = None
+    for i,(train, test) in enumerate(kfold):
+        #model = None
+        model = LSTM_Bidir_model(word_index, embedding_matrix, max_len, categorical)
+        print("Fit fold", i+1," ==========================================================================")
+        model_info=model.fit(X_train[train], y_train[train], epochs=10, batch_size=12, validation_data=(X_train[test], y_train[test]),
+                               callbacks=callbacks_list, verbose=1)
+        print("Performance plot of fold {}:".format(i+1))
+        # summarize history in plot
+        plot_model_history(model_info)
+        model_infos.append(model_info)
+
+        #Final evaluation of the model
+        metrics, y_pred = evaluate_model(metrics, categorical, model, y_test, X_test)
+    
+    print(model.summary())
+    
+    return y_pred, metrics, model_infos
+
+
+# CNN Model
+def CNN(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed, categorical):
+    earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto', restore_best_weights=True) # pateince is number of epochs
+    callbacks_list = [earlystop]
+    if (categorical):
+        kfold = list(KFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    else:
+        kfold = list(StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y_train))
+    model_infos = []
+    metrics = []
+    model = None
+    for i,(train, test) in enumerate(kfold):
+        model = None
+        model = CNN_model(word_index, embedding_matrix, max_len, categorical)
+        print("Fit fold", i+1," ==========================================================================")
+        model_info=model.fit(X_train[train], y_train[train], epochs=10, batch_size=32, validation_data=(X_train[test], y_train[test]),
+                               callbacks=callbacks_list, verbose=1)
+        print("Performance plot of fold {}:".format(i+1))
+        # summarize history in plot
+        plot_model_history(model_info)
+        model_infos.append(model_info)
+
+        #Final evaluation of the model
+        metrics, y_pred = evaluate_model(metrics, categorical, model, y_test, X_test)
+    
+    print(model.summary())
+    
+    return y_pred, metrics, model_infos
+
+########################################################################################################
+# model = CNN_model(word_index_eff, embedding_matrix_w2v_eff, max_len_eff, False)
+# print(model.summary())
+seed = 40
+# Binary Tests
+y_pred, metrics, model_infos = LSTM_Uni(X_train_b, y_train_b, X_test_b, y_test_b, word_index_eff, embedding_matrix_w2v_eff, max_len_eff, seed, False)
+for i in metrics:
+    print(i)
+print(model_infos)
+# y_pred, metrics, model_infos = LSTM_Uni(X_train_c, y_train_c, X_test_c, y_test_c, word_index_eff, embedding_matrix_w2v_eff, max_len_eff, seed, True)
+# for i in metrics:
+#     print(i)
+# print(model_infos)
+# y_pred, metrics, model_infos = CNN(X_train_b, y_train_b, X_test_b, y_test_b, word_index_eff, embedding_matrix_GNV_eff, max_len_eff, seed, False)
+# for i in metrics:
+#     print(i)
+# print(model_infos)
+# y_pred, metric, model_infos = LSTM_Uni(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_w2v, max_len, seed, False)
+# y_pred, metric, model_infos = LSTM_Bidir(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_w2v, max_len, seed, False)
+# y_pred, metric, model_infos = CNN_Model(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_w2v, max_len, seed, False)
+# y_pred, metric, model_infos = LSTM_Uni(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_GNV, max_len, seed, False)
+# y_pred, metric, model_infos = LSTM_Bidir(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_GNV, max_len, seed, False)
+# y_pred, metric, model_infos = CNN_Model(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_GNV, max_len, seed, False)
+
+# Categorical Tests
+# y_pred, metric, model_infos = LSTM_Uni(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_w2v, max_len, seed, True)
+# y_pred, metric, model_infos = LSTM_Bidir(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_w2v, max_len, seed, True)
+# y_pred, metric, model_infos = CNN_Model(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_w2v, max_len, seed, True)
+# y_pred, metric, model_infos = LSTM_Uni(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_GNV, max_len, seed, True)
+# y_pred, metric, model_infos = LSTM_Bidir(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_GNV, max_len, seed, True)
+# y_pred, metric, model_infos = CNN_Model(X_train_c, y_train_c, X_test_c, y_test_c, word_index, embedding_matrix_GNV, max_len, seed, True)
