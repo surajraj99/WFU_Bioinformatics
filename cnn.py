@@ -245,7 +245,7 @@ def CNN_model(word_index, embedding_matrix, max_len, categorical):
     model.add(Conv1D(128, 5, activation='relu'))
     model.add(GlobalMaxPooling1D())
     model.add(Dense(10, activation='relu'))
-    model.add(Dropout(0.4))
+    model.add(Dropout(0.1))
     if (categorical):
         model.add(Dense(3, activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
@@ -260,11 +260,11 @@ def CNN_model2(word_index, embedding_matrix, max_len, categorical):
     optm = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     model = Sequential()
     model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
-    model.add(Conv1D(64, 7, activation='relu', padding='same'))
+    model.add(Conv1D(128, 7, activation='relu', padding='same'))
     model.add(MaxPooling1D(2))
-    model.add(Conv1D(64, 7, activation='relu', padding='same'))
+    model.add(Conv1D(128, 7, activation='relu', padding='same'))
     model.add(GlobalMaxPooling1D())
-    model.add(Dense(32, activation='relu', kernel_regularizer=regularizers.l2(1e-4)))
+    model.add(Dense(64, activation='relu', kernel_regularizer=regularizers.l2(1e-4)))
     model.add(Dropout(0.2))
     if (categorical):
         model.add(Dense(3, activation='softmax'))
@@ -330,19 +330,13 @@ def findAverage(all_metrics):
 
 seed = 97
 # Binary Tests
-y_pred, metrics, model_infos = CNN(X_train_b, y_train_b, X_test_b, y_test_b, word_index_eff, embedding_matrix_GNV_eff, max_len_eff, seed, False)
-avg_metrics = findAverage(metrics)
-print("Average Scores")
-print(avg_metrics)
-
-# y_pred, metrics, model_infos = CNN(X_train_c, y_train_c, X_test_c, y_test_c, word_index_eff, embedding_matrix_GNV_eff, max_len_eff, seed, True)
+# y_pred, metrics, model_infos = CNN(X_train_b, y_train_b, X_test_b, y_test_b, word_index_eff, embedding_matrix_w2v_eff, max_len_eff, seed, False)
 # avg_metrics = findAverage(metrics)
 # print("Average Scores")
 # print(avg_metrics)
 
+y_pred, metrics, model_infos = CNN(X_train_c, y_train_c, X_test_c, y_test_c, word_index_eff, embedding_matrix_GNV_eff, max_len_eff, seed, True)
+avg_metrics = findAverage(metrics)
+print("Average Scores")
+print(avg_metrics)
 
-
-# y_pred, metrics, model_infos = CNN(X_train_b, y_train_b, X_test_b, y_test_b, word_index, embedding_matrix_GNV, max_len, seed, False)
-# for i in metrics:
-#     print(i)
-# print(model_infos)

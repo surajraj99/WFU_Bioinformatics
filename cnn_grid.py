@@ -1,3 +1,4 @@
+
 import numpy as np
 import tensorflow as tf
 import random as rn
@@ -168,7 +169,6 @@ def make_eff_labels():
 
     return X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c
 
-#sbatch --no-requeue : command to not repeat
 
 # Choose which setting you are running the model in and comment one othe two next lines out
 notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_eff, embedding_matrix_w2v_eff, embedding_matrix_GNV_eff, word_index_eff, max_len_eff, binary_labels, categorical_labels = get_variables_cluster()
@@ -177,7 +177,7 @@ notes, embedding_matrix_w2v, embedding_matrix_GNV, word_index, max_len, notes_ef
 X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c = make_eff_labels()
 #X_train_b, X_test_b, y_train_b, y_test_b, X_train_c, X_test_c, y_train_c, y_test_c = make_whole_labels()
 
-# # temporary for local testing:
+# temporary for local testing:
 # X_train_b = X_train_b[:10]
 # y_train_b = y_train_b[:10]
 # X_test_b = X_test_b[:][:10]
@@ -236,16 +236,16 @@ def evaluate_model(metrics, categorical, model, y_test, X_test):
     return metrics, y_pred
 
 #################################################################################################
-# Create LSTM unidirectional model
-def LSTM_Uni_model(word_index, embedding_matrix, max_len, categorical):
-    optm = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+
+# Create CNN model
+def CNN_model(word_index, embedding_matrix, max_len, categorical, dropout, multiplier):
     model = Sequential()
+    optm = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
     model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
-    model.add(Dropout(0.2))    #DROPOUT
-    model.add(Conv1D(filters=32, kernel_size=3, padding='same')) 
-    model.add(Activation('relu'))
-    model.add(MaxPooling1D(pool_size=2))
-    model.add(LSTM(100))
+    model.add(Conv1D((128*multiplier), 5, activation='relu'))
+    model.add(GlobalMaxPooling1D())
+    model.add(Dense(10, activation='relu'))
+    model.add(Dropout(dropout))
     if (categorical):
         model.add(Dense(3, activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
@@ -255,9 +255,30 @@ def LSTM_Uni_model(word_index, embedding_matrix, max_len, categorical):
     
     return model
 
-####################################################################################################
+# CNN Model Creation 2
+def CNN_model2(word_index, embedding_matrix, max_len, categorical, dropout, multiplier):
+    optm = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    model = Sequential()
+    model.add(Embedding(len(word_index)+1, 300, weights=[embedding_matrix], input_length=max_len, trainable=False))
+    model.add(Conv1D((64*multiplier), 7, activation='relu', padding='same'))
+    model.add(MaxPooling1D(2))
+    model.add(Conv1D((64*multiplier), 7, activation='relu', padding='same'))
+    model.add(GlobalMaxPooling1D())
+    model.add(Dense((32*multiplier), activation='relu', kernel_regularizer=regularizers.l2(1e-4)))
+    model.add(Dropout(dropout))
+    if (categorical):
+        model.add(Dense(3, activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer=optm, metrics=['accuracy'])
+    else:
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer=optm, metrics=['accuracy'])
 
-def LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed, categorical):
+    return model
+
+#################################################################################################
+
+# CNN Model
+def CNN(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max_len, seed, categorical, dropout, multiplier):
     earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='auto', restore_best_weights=True) # pateince is number of epochs
     callbacks_list = [earlystop]
     if (categorical):
@@ -269,10 +290,11 @@ def LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max
     model = None
     for i,(train, test) in enumerate(kfold):
         model = None
-        model = LSTM_Uni_model(word_index, embedding_matrix, max_len, categorical)
+        model = CNN_model(word_index, embedding_matrix, max_len, categorical, dropout, multiplier)
+        #model = CNN_model2(word_index, embedding_matrix, max_len, categorical, dropout, multiplier)
         print("Fit fold", i+1," ==========================================================================")
-        model_info=model.fit(X_train[train], y_train[train], epochs=10, batch_size=8, validation_data=(X_train[test], y_train[test]),
-                               callbacks=callbacks_list, verbose=1)
+        model_info=model.fit(X_train[train], y_train[train], epochs=10, batch_size=4, validation_data=(X_train[test], y_train[test]),
+                               callbacks=callbacks_list, verbose=0)
         print("Performance plot of fold {}:".format(i+1))
         # summarize history in plot
         plot_model_history(model_info)
@@ -285,7 +307,8 @@ def LSTM_Uni(X_train, y_train, X_test, y_test, word_index, embedding_matrix, max
     
     return y_pred, metrics, model_infos
 
-    ######################################################################################
+########################################################################################################
+
 def findAverage(all_metrics):
     f1 = []
     precision = []
@@ -306,8 +329,35 @@ def findAverage(all_metrics):
     return avg_metrics
 
 seed = 97
-# Binary Tests
-y_pred, metrics, model_infos = LSTM_Uni(X_train_b, y_train_b, X_test_b, y_test_b, word_index_eff, embedding_matrix_GNV_eff, max_len_eff, seed, False)
-avg_metrics = findAverage(metrics)
-print("Average Scores")
-print(avg_metrics)
+
+dropouts = [0.1, 0.2, 0.4]
+multipliers = [1, 2]
+best_dropout = 0
+best_multiplier = 0
+best_accuracy = 0
+
+# Grid Search Based on Accuracy for CNN Model
+for dropout in dropouts:
+    for multiplier in multipliers:
+        y_pred, metrics, model_infos = CNN(X_train_c, y_train_c, X_test_c, y_test_c, word_index_eff, embedding_matrix_w2v_eff, max_len_eff, seed, True, dropout, multiplier)
+        avg_metrics = findAverage(metrics)
+        print("Average Scores for Dropout " + str(dropout) + " and Multiplier " + str(multiplier))
+        print(avg_metrics)
+        if avg_metrics[3][1] > best_accuracy:
+            best_accuracy = avg_metrics[3][1]
+            best_dropout = dropout
+            best_multiplier = multiplier
+
+print("Best Accuracy")
+print(best_accuracy)
+print("Best Dropout")
+print(best_dropout)
+print("Best Multiplier")
+print(best_multiplier)
+
+
+
+
+
+
+
