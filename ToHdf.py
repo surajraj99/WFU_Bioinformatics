@@ -46,26 +46,3 @@ df = pd.DataFrame(embedding_matrix)
 df.to_hdf('PandaFiles/embedding_matrix_GNV_eff.h5', key='df')
 
 #############################################################################################
-
-# Tokenized notes HAN
-f = open('PickleFiles/han_data.pckl', 'rb')
-notes = pickle.load(f)
-f.close()
-df = pd.DataFrame(notes)
-df.to_hdf('PandaFiles/han_data.h5', key='df')
-
-#Emebedding matrix for w2v HAN
-f = open('PickleFiles/embedding_matrix_w2v_han.pckl', 'rb')
-embedding_matrix = pickle.load(f)
-f.close()
-df = pd.DataFrame(embedding_matrix)
-df.to_hdf('PandaFiles/embedding_matrix_w2v_han.h5', key='df')
-
-#Embedding matrix for gnv HAN
-f = open('PickleFiles/embedding_matrix_GNV_han.pckl', 'rb')
-embedding_matrix = pickle.load(f)
-f.close()
-df = pd.DataFrame(embedding_matrix)
-df.to_hdf('PandaFiles/embedding_matrix_GNV_han.h5', key='df')
-
-print("Done")
